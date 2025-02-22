@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 import numpy as np
 import streamlit as st
 import altair as alt
@@ -8,7 +9,10 @@ from sqlalchemy import create_engine
 # Set page configuration
 st.set_page_config(layout="wide")
 
-engine = create_engine('sqlite:///api/database.sqlite')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Get current directory
+DB_PATH = os.path.join(BASE_DIR, "api", "database.sqlite")
+
+engine = create_engine(f"sqlite:///{DB_PATH}")
 
 # Fetch data from the database
 sales_data = pd.read_sql('SELECT * FROM sales_data', engine)
