@@ -133,4 +133,4 @@ with right:
             ),
         ],
     )
-    st.pydeck_chart(map_chart)
+    st.pydeck_chart(map_chart,use_container_width=True, height=300)
