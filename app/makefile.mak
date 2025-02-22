@@ -17,7 +17,7 @@ install: $(VENV_DIR)
 
 # Run the Streamlit app
 run: install
-	$(STREAMLIT) run main.py
+	$(STREAMLIT) run ../app/main.py
 
 # Clean up temporary files
 clean:

@@ -103,9 +103,9 @@ venv.bak/
 *.json
 *.xlsx
 *.xls
-*.db
-*.sqlite
-*.sqlite3
+# *.db
+# *.sqlite
+# *.sqlite3
 
 # Temporary files
 *.tmp

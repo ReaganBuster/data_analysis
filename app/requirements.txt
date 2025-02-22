@@ -3,3 +3,5 @@ streamlit
 requests
 plotly
 altair
+sqlalchemy
+pydeck
