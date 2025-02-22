@@ -74,13 +74,13 @@ with extra:
 left, right = st.columns(2)
 with left:
     st.subheader("Orders by Delivery Status")
-    donut_chart = alt.Chart(delivery_status).mark_arc(innerRadius=80).encode(
+    donut_chart = alt.Chart(delivery_status).mark_arc(innerRadius=60).encode(
         theta=alt.Theta(field="Orders", type="quantitative"),
         color=alt.Color(field="Status", type="nominal")
     )
     total_orders = delivery_status["Orders"].sum()
     text = alt.Chart(pd.DataFrame({'text': [f'Total Orders\n{total_orders}']})).mark_text(
-        align='center', baseline='middle', fontSize=20
+        align='center', baseline='middle', fontSize=15
     ).encode(text='text')
     st.altair_chart(donut_chart + text, use_container_width=True)
 with right:
