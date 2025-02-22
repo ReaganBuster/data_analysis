@@ -33,44 +33,62 @@ st.write("Here is the raw data fetched from Alpha Vantage for the stock symbol I
 st.dataframe(df)
 
 # Show line chart
-st.subheader("Stock Prices Over Time")
-st.write("The line chart below shows the stock prices (Open, High, Low, Close) over time. This helps in visualizing the price movements and trends.")
-st.line_chart(df[["Open", "High", "Low", "Close"]])
+left, right = st.columns(2)
+with left:
+    st.subheader("Stock Prices Over Time")
+    st.line_chart(df[["Open", "High", "Low", "Close"]])
+with right:
+    st.write("The line chart shows the stock prices (Open, High, Low, Close) over time. This helps in visualizing the price movements and trends.")
 
 # Show volume as bar chart
-st.subheader("Trading Volume Over Time")
-st.write("The bar chart below represents the trading volume over time. Higher bars indicate higher trading activity during those intervals.")
-st.bar_chart(df["Volume"])
+left, right = st.columns(2)
+with left:
+    st.write("The bar chart represents the trading volume over time. Higher bars indicate higher trading activity during those intervals.")
+with right:
+    st.subheader("Trading Volume Over Time")
+    st.bar_chart(df["Volume"])
 
 # Calculate moving averages
 df['SMA_20'] = df['Close'].rolling(window=20).mean()
 df['SMA_50'] = df['Close'].rolling(window=50).mean()
 
 # Show moving averages
-st.subheader("Moving Averages")
-st.write("The chart below shows the 20-period and 50-period Simple Moving Averages (SMA) along with the closing prices. Moving averages help in identifying the trend direction and potential reversals.")
-st.line_chart(df[['Close', 'SMA_20', 'SMA_50']])
+left, right = st.columns(2)
+with left:
+    st.subheader("Moving Averages")
+    st.line_chart(df[['Close', 'SMA_20', 'SMA_50']])
+with right:
+    st.write("The chart shows the 20-period and 50-period Simple Moving Averages (SMA) along with the closing prices. Moving averages help in identifying the trend direction and potential reversals.")
 
 # Candlestick chart
-st.subheader("Candlestick Chart")
-st.write("The candlestick chart below provides a detailed view of the stock's price movements, including the open, high, low, and close prices for each interval. This type of chart is commonly used in technical analysis.")
-fig = go.Figure(data=[go.Candlestick(x=df.index,
-                open=df['Open'],
-                high=df['High'],
-                low=df['Low'],
-                close=df['Close'])])
-st.plotly_chart(fig)
+left, right = st.columns(2)
+with left:
+    st.write("The candlestick chart provides a detailed view of the stock's price movements, including the open, high, low, and close prices for each interval. This type of chart is commonly used in technical analysis.")
+with right:
+    st.subheader("Candlestick Chart")
+    fig = go.Figure(data=[go.Candlestick(x=df.index,
+                    open=df['Open'],
+                    high=df['High'],
+                    low=df['Low'],
+                    close=df['Close'])])
+    st.plotly_chart(fig)
 
 # Summary statistics
-st.subheader("Summary Statistics")
-st.write("The table below provides summary statistics for the stock data, including measures such as mean, standard deviation, min, max, and quartiles. These statistics give an overview of the data distribution.")
-st.write(df.describe())
+left, right = st.columns(2)
+with left:
+    st.subheader("Summary Statistics")
+    st.write(df.describe())
+with right:
+    st.write("The table provides summary statistics for the stock data, including measures such as mean, standard deviation, min, max, and quartiles. These statistics give an overview of the data distribution.")
 
 # Correlation matrix
-st.subheader("Correlation Matrix")
-st.write("The correlation matrix below shows the correlation coefficients between different columns in the dataset. A higher absolute value indicates a stronger relationship between the variables.")
-corr = df.corr()
-st.write(corr)
+left, right = st.columns(2)
+with left:
+    st.write("The correlation matrix shows the correlation coefficients between different columns in the dataset. A higher absolute value indicates a stronger relationship between the variables.")
+with right:
+    st.subheader("Correlation Matrix")
+    corr = df.corr()
+    st.write(corr)
 
 # Existing metrics and charts
 left, centre, right = st.columns(3)
@@ -97,7 +115,8 @@ left_1, right_2 = st.columns([2,1])
 with left_1:
     with st.container():
         st.subheader("Sample Data Piechart Over Time")
-        st.write("The pie chart below represents sample data categorized into three categories. This visualization helps in understanding the distribution of values across different categories.")
         st.altair_chart(base)
+with right_2:
+    st.write("The pie chart represents sample data categorized into three categories. This visualization helps in understanding the distribution of values across different categories.")
 
 
