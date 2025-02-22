@@ -16,15 +16,8 @@ SQLite (Database)
 Mapbox (Geospatial Mapping)
 📌 Installation & Usage
 1️⃣ Clone the Repository
-bash
-Copy
-Edit
-git clone https://github.com/yourusername/logistics-dashboard.git
 cd logistics-dashboard
 2️⃣ Install Dependencies
-bash
-Copy
-Edit
 pip install -r requirements.txt
 3️⃣ Run the Application
 Using the Makefile:
