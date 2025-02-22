@@ -74,7 +74,7 @@ with extra:
 left, right = st.columns(2)
 with left:
     st.subheader("Orders by Delivery Status")
-    donut_chart = alt.Chart(delivery_status).mark_arc(innerRadius=110).encode(
+    donut_chart = alt.Chart(delivery_status).mark_arc(innerRadius=80).encode(
         theta=alt.Theta(field="Orders", type="quantitative"),
         color=alt.Color(field="Status", type="nominal")
     )
