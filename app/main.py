@@ -1,122 +1,158 @@
-import requests
 import pandas as pd
+import numpy as np
 import streamlit as st
 import altair as alt
-import plotly.graph_objects as go
+import pydeck as pdk
 
-# Fetch data
-url = 'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=5min&apikey=IXQRCBHRNVU15Q2X'
-r = requests.get(url)
-data = r.json()
-
-# Convert JSON to DataFrame
-time_series = data["Time Series (5min)"]
-df = pd.DataFrame.from_dict(time_series, orient="index")
-df.index = pd.to_datetime(df.index)  # Convert index to datetime
-df = df.rename(columns={
-    "1. open": "Open",
-    "2. high": "High",
-    "3. low": "Low",
-    "4. close": "Close",
-    "5. volume": "Volume"
-})
-df = df.astype(float)  # Convert all values to float
-
+# Set page configuration
 st.set_page_config(layout="wide")
 
+# Generate dummy data
+np.random.seed(42)
+dates = pd.date_range(start="2023-01-01", periods=100)
+sales_data = pd.DataFrame({
+    "Date": dates,
+    "Sales": np.random.randint(1000, 5000, size=len(dates)),
+    "Deliveries": np.random.randint(50, 200, size=len(dates)),
+    "Net_Profit": np.random.randint(500, 3000, size=len(dates)),
+    "Expenses": np.random.randint(200, 1500, size=len(dates)),
+    "Delivery_Time": np.random.uniform(1, 5, size=len(dates))
+})
+sales_data["Revenue"] = sales_data["Sales"] - sales_data["Expenses"]
+sales_data["Net_Profit_Ratio"] = sales_data["Net_Profit"] / sales_data["Sales"]
+
+# Generate additional dummy data for charts
+months = pd.date_range(start="2023-01-01", periods=12, freq='M').strftime('%b')
+order_accuracy = pd.DataFrame({
+    "Month": months,
+    "Accuracy": np.random.uniform(90, 100, size=12)
+})
+inventory_to_sales = pd.DataFrame({
+    "Month": months,
+    "Inventory": np.random.randint(5000, 20000, size=12),
+    "Sales": np.random.randint(1000, 5000, size=12)
+})
+delivery_status = pd.DataFrame({
+    "Status": ["Delivered", "In Transit", "Cancelled"],
+    "Orders": [450, 120, 30]
+})
+loading_time_weight = pd.DataFrame({
+    "Month": months,
+    "Loading_Time": np.random.uniform(1, 5, size=12),
+    "Weight": np.random.randint(1000, 5000, size=12)
+})
+delivery_locations = pd.DataFrame({
+    "Location": ["Kampala", "Entebbe", "Jinja", "Gulu", "Mbarara"],
+    "Latitude": [0.3476, 0.0517, 0.4394, 2.7666, -0.6077],
+    "Longitude": [32.5825, 32.4637, 33.2032, 32.3056, 30.6586],
+    "Deliveries": [150, 80, 60, 40, 30]
+})
+
 # Streamlit App
-st.title(f"Stock Data for {data['Meta Data']['2. Symbol']}")
+st.title("Logistics Dashboard")
 
-# Show raw data
-st.subheader("Raw Data")
-st.write("Here is the raw data fetched from Alpha Vantage for the stock symbol IBM. This data includes the open, high, low, close prices, and the trading volume for each 5-minute interval.")
-st.dataframe(df)
+# Date picker
+st.sidebar.header("Select Date Range")
+start_date = st.sidebar.date_input("Start Date", value=pd.to_datetime("2023-01-01"))
+end_date = st.sidebar.date_input("End Date", value=pd.to_datetime("2023-04-10"))
 
-# Show line chart
+# Filter data based on date range
+filtered_data = sales_data[(sales_data["Date"] >= pd.to_datetime(start_date)) & (sales_data["Date"] <= pd.to_datetime(end_date))]
+
+# First row: Metrics
+left, centre, right, extra = st.columns(4)
+with left:
+    st.metric(label="Total Sales", value=f"${filtered_data['Sales'].sum():,.2f}", delta=f"{filtered_data['Sales'].pct_change().iloc[-1]*100:.2f}%", delta_color="inverse", border=True)
+with centre:
+    st.metric(label="Total Expenses", value=f"${filtered_data['Expenses'].sum():,.2f}", delta=f"{filtered_data['Expenses'].pct_change().iloc[-1]*100:.2f}%", delta_color="inverse", border=True)
+with right:
+    st.metric(label="Net Profit Ratio", value=f"{filtered_data['Net_Profit_Ratio'].mean()*100:.2f}%", delta=f"{filtered_data['Net_Profit_Ratio'].pct_change().iloc[-1]*100:.2f}%", delta_color="inverse", border=True)
+with extra:
+    st.metric(label="Average Delivery Time", value=f"{filtered_data['Delivery_Time'].mean():.2f} days", delta=f"{filtered_data['Delivery_Time'].pct_change().iloc[-1]*100:.2f}%", delta_color="inverse", border=True)
+
+# Second row: Donut pie chart and bar chart
 left, right = st.columns(2)
 with left:
-    st.subheader("Stock Prices Over Time")
-    st.line_chart(df[["Open", "High", "Low", "Close"]])
+    st.subheader("Orders by Delivery Status")
+    donut_chart = alt.Chart(delivery_status).mark_arc(innerRadius=110).encode(
+        theta=alt.Theta(field="Orders", type="quantitative"),
+        color=alt.Color(field="Status", type="nominal")
+    )
+    total_orders = delivery_status["Orders"].sum()
+    text = alt.Chart(pd.DataFrame({'text': [f'Total Orders\n{total_orders}']})).mark_text(
+        align='center', baseline='middle', fontSize=20
+    ).encode(text='text')
+    st.altair_chart(donut_chart + text, use_container_width=True)
 with right:
-    st.write("The line chart shows the stock prices (Open, High, Low, Close) over time. This helps in visualizing the price movements and trends.")
+    st.subheader("Order Accuracy by Month")
+    bar_chart = alt.Chart(order_accuracy).mark_bar().encode(
+        x=alt.X('Month', sort=months),
+        y='Accuracy'
+    )
+    st.altair_chart(bar_chart, use_container_width=True)
 
-# Show volume as bar chart
+# Third row: Horizontal bar chart and area chart
 left, right = st.columns(2)
 with left:
-    st.write("The bar chart represents the trading volume over time. Higher bars indicate higher trading activity during those intervals.")
+    st.subheader("Monthly Sales")
+    horizontal_bar_chart = alt.Chart(order_accuracy).mark_bar().encode(
+        y=alt.Y('Month', sort=months),
+        x='Accuracy'
+    ).properties(
+        height=alt.Step(40),  # Display only 5 months at a time
+        width=400  # Adjust width as needed
+    ).interactive()
+    st.altair_chart(horizontal_bar_chart, use_container_width=True)
 with right:
-    st.subheader("Trading Volume Over Time")
-    st.bar_chart(df["Volume"])
+    st.subheader("Inventory to Sales")
+    area_chart = alt.Chart(inventory_to_sales).mark_area(opacity=0.5).encode(
+        x=alt.X('Month', sort=months),
+        y=alt.Y('Inventory', title='Inventory'),
+        y2=alt.Y2('Sales', title='Sales')
+    ).properties(
+        height=alt.Step(40) # Match height with the horizontal bar chart
+    )
+    st.altair_chart(area_chart, use_container_width=True)
 
-# Calculate moving averages
-df['SMA_20'] = df['Close'].rolling(window=20).mean()
-df['SMA_50'] = df['Close'].rolling(window=50).mean()
-
-# Show moving averages
-left, right = st.columns(2)
-with left:
-    st.subheader("Moving Averages")
-    st.line_chart(df[['Close', 'SMA_20', 'SMA_50']])
-with right:
-    st.write("The chart shows the 20-period and 50-period Simple Moving Averages (SMA) along with the closing prices. Moving averages help in identifying the trend direction and potential reversals.")
-
-# Candlestick chart
-left, right = st.columns(2)
-with left:
-    st.write("The candlestick chart provides a detailed view of the stock's price movements, including the open, high, low, and close prices for each interval. This type of chart is commonly used in technical analysis.")
-with right:
-    st.subheader("Candlestick Chart")
-    fig = go.Figure(data=[go.Candlestick(x=df.index,
-                    open=df['Open'],
-                    high=df['High'],
-                    low=df['Low'],
-                    close=df['Close'])])
-    st.plotly_chart(fig)
-
-# Summary statistics
-left, right = st.columns(2)
-with left:
-    st.subheader("Summary Statistics")
-    st.write(df.describe())
-with right:
-    st.write("The table provides summary statistics for the stock data, including measures such as mean, standard deviation, min, max, and quartiles. These statistics give an overview of the data distribution.")
-
-# Correlation matrix
-left, right = st.columns(2)
-with left:
-    st.write("The correlation matrix shows the correlation coefficients between different columns in the dataset. A higher absolute value indicates a stronger relationship between the variables.")
-with right:
-    st.subheader("Correlation Matrix")
-    corr = df.corr()
-    st.write(corr)
-
-# Existing metrics and charts
+# Fourth row: Delivery status, loading time to weight, and map
 left, centre, right = st.columns(3)
 with left:
-    with st.container():
-        st.subheader("📊 Sales Report")
-        st.metric(label="Total Revenue", value="$120,000", delta="+12%")
-        st.write("The Sales Report shows the total revenue generated, with a positive change of 12% compared to the previous period.")
+    st.subheader("Delivery Status")
+    delivery_status_chart = alt.Chart(delivery_status).mark_bar().encode(
+        x=alt.X('Status', sort=delivery_status["Status"]),
+        y='Orders'
+    )
+    st.altair_chart(delivery_status_chart, use_container_width=True)
 with centre:
-    with st.container():
-        st.subheader("📊 Revenue Report")
-        st.metric(label="Total Revenue", value="$50,000", delta="-18%")
-        st.write("The Revenue Report indicates a total revenue of $50,000, with a decrease of 18% compared to the previous period.")
+    st.subheader("Loading Time to Weight")
+    line_chart = alt.Chart(loading_time_weight).mark_line().encode(
+        x=alt.X('Month', sort=months),
+        y='Loading_Time'
+    )
+    bar_chart = alt.Chart(loading_time_weight).mark_bar(opacity=0.5).encode(
+        x=alt.X('Month', sort=months),
+        y='Weight'
+    )
+    st.altair_chart(line_chart + bar_chart, use_container_width=True)
 with right:
-    with st.container():
-        st.subheader("📊 Delivery Report")
-        st.metric(label="Total Revenue", value="$86,000", delta="+5%", border=True)
-        st.write("The Delivery Report shows a total revenue of $86,000, with a slight increase of 5% compared to the previous period.")
-    
-source = pd.DataFrame({'category': [1,2,3], 'value': [50,25,25]})
-base = alt.Chart(source).mark_arc(innerRadius=120).encode(theta='value', color='category:N')
-    
-left_1, right_2 = st.columns([2,1])
-with left_1:
-    with st.container():
-        st.subheader("Sample Data Piechart Over Time")
-        st.altair_chart(base)
-with right_2:
-    st.write("The pie chart represents sample data categorized into three categories. This visualization helps in understanding the distribution of values across different categories.")
-
-
+    st.subheader("Deliveries by Location")
+    map_chart = pdk.Deck(
+        map_style='mapbox://styles/mapbox/light-v9',
+        initial_view_state=pdk.ViewState(
+            latitude=1.3733,
+            longitude=32.2903,
+            zoom=6,
+            pitch=50,
+        ),
+        layers=[
+            pdk.Layer(
+                'ScatterplotLayer',
+                data=delivery_locations,
+                get_position='[Longitude, Latitude]',
+                get_color='[200, 30, 0, 160]',
+                get_radius='Deliveries',
+                radius_scale=1000,
+            ),
+        ],
+    )
+    st.pydeck_chart(map_chart)
